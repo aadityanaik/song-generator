@@ -1,12 +1,13 @@
 from song_preprocessing import Song
 from sklearn.preprocessing import MinMaxScaler
 from keras.models import Sequential
-from keras.layers import LSTM, Dense
+from keras.layers import LSTM, Dense, TimeDistributed
+import matplotlib.pyplot as plt
 import numpy as np
 
 
 def create_sequences(data, seq_length):
-    assert data, seq_length is not None
+    assert data is not None and seq_length is not None
     x, y = [], []
 
     for i in range(int(len(data) / seq_length) - 1):
@@ -18,7 +19,7 @@ def create_sequences(data, seq_length):
 
 
 def generate_data(duration, originalSong):
-    assert duration, originalSong is not None
+    assert duration is not None and originalSong is not None
 
     frame_rate = originalSong.framerate
     # duration is in milliseconds
@@ -26,7 +27,7 @@ def generate_data(duration, originalSong):
     # TODO Add song generating algorithm... Will do later, cuz bored
 
 
-song = Song(filename='Last Heroes - Dimensions [NCS Release].wav', format='wav')
+song = Song(filename='motherboard.wav', format='wav')
 
 song_data = np.array(song.data)
 
@@ -37,20 +38,24 @@ scaled_data = scaler.fit_transform(song_data)
 
 print(scaled_data.shape)
 
-X, y = create_sequences(scaled_data, song.frame_rate)
+X, y = create_sequences(scaled_data, int(song.frame_rate / 100))
 
 X = np.reshape(X, (X.shape[0], 1, X.shape[1]))
 
 print(X.shape, y.shape)
 
 model = Sequential()
-model.add(LSTM(64, input_shape=(1, song.frame_rate)))
-model.add(Dense(1))
+model.add(LSTM(128, input_shape=(X.shape[1], X.shape[2])))
+model.add((Dense(1)))
 model.compile(loss='mean_squared_error', optimizer='rmsprop')
 
-model.fit(X, y, epochs=100, batch_size=16)
+history = model.fit(X, y, epochs=50, batch_size=16)
+plt.plot(history.history['loss'])
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.show()
 
-
+model.save('model.h5')
 '''
 inverse_scaled_data = scaler.inverse_transform(scaled_data)
 
